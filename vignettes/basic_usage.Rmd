@@ -1,0 +1,198 @@
+---
+title: "depsearcheR -- basic usage"
+author: "Juho Härme"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{depsearcheR}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+
+The DepsearcheR package is a simple utility made for the purpose of using R for
+corpus analyses involving the utilization of dependency annotations represented
+in some version of the CoNLL format (cf. e.g [here](https://stackoverflow.com/questions/27416164/what-is-conll-data-format)).
+
+## Basic idea
+ 
+
+Assume that you have parsed a file like the one provided in the `inst/extdata`
+folder of this package (the Finnish wikipedia article for sparrow):
+
+```{r}
+
+library(depsearcheR)
+library(readr)
+mytext <- readr::read_file(
+                           system.file("extdata", 
+                                       "varpunen_wikipedia.txt",
+                                       package="depsearcheR")
+                           )
+
+cat(substr(mytext,1,300))
+
+
+```
+
+The text has been parsed with [the Finnish dependency parser developed at the
+university of Turku](http://turkunlp.github.io/Finnish-dep-parser/) and this
+output file is also included in `inst/extdata`. Note that 
+the format here is the so called universal dependencies format.
+This is what the conll formatted file looks like:
+
+
+    1	Varpunen	varpunen	NOUN	_	Case=Nom|Number=Sing	8	nsubj:cop	_	_
+    2	(	(	PUNCT	_	_	4	punct	_	_
+    3	Passer	Passer	PROPN	_	Case=Nom|Number=Sing	4	compound:nn	_	_
+    4	domesticus	domesticus	NOUN	_	Case=Nom|Number=Sing	1	appos	_	_
+    5	)	)	PUNCT	_	_	4	punct	_	_
+    6	on	olla	VERB	_	Mood=Ind|Number=Sing|Person=3|Tense=Pres|VerbForm=Fin|Voice=Act	8	cop	_	_
+    7	yleinen	yleinen	ADJ	_	Case=Nom|Degree=Pos|Number=Sing	8	amod	_	_
+    8	lintulaji	lintu#laji	NOUN	_	Case=Nom|Number=Sing	0	root	_	_
+    9	suuressa	suuri	ADJ	_	Case=Ine|Degree=Pos|Number=Sing	10	amod	_	_
+    10	osassa	osa	NOUN	_	Case=Ine|Number=Sing	8	nmod	_	_
+    11	Eurooppaa	Eurooppa	PROPN	_	Case=Par|Number=Sing	10	nmod	_	_
+    12	ja	ja	CONJ	_	_	11	cc	_	_
+    13	Aasiaa	Aasia	PROPN	_	Case=Par|Number=Sing	11	conj	_	_
+    14	.	.	PUNCT	_	_	8	punct	_	_
+
+    1	Carolus	Carolus	PROPN	_	Case=Nom|Number=Sing	2	name	_	_
+    2	Linnaeus	Linnaeus	PROPN	_	Case=Nom|Number=Sing	3	nsubj	_	_
+    3	antoi	antaa	VERB	_	Mood=Ind|Number=Sing|Person=3|Tense=Past|VerbForm=Fin|Voice=Act	0	root	_	_
+    4	varpuselle	varpunen	NOUN	_	Case=All|Number=Sing	3	nmod	_	_
+    5	aluksi	aluksi	ADV	_	_	3	advmod	_	_
+    6	nimen	nimi	NOUN	_	Case=Gen|Number=Sing	7	nmod:poss	_	_
+    7	Fringilla	Fringilla	NOUN	_	Case=Ade|Number=Plur	3	nmod	_	_
+    8	domestica	domestica	X	_	Foreign=Foreign	3	dobj	_	_
+    9	.	.	PUNCT	_	_	3	punct	_	_
+
+
+Now, let's imagine we have a data set consisting of all the sentences of the Finnish
+wikipedia article mentioned above.
+
+```{r}
+
+
+library(dplyr)
+library(readr)
+sentences <- readr::read_file(
+                           system.file("extdata", 
+                                       "varpunen.conll",
+                                       package="depsearcheR")
+                           ) %>% 
+        strsplit("\n\n")  %>% 
+        unlist
+
+
+
+```
+
+
+First, let's assume that we want to get all the sentences including
+one or more cases in which a noun is governed by a verb.
+
+TODO: first make a reference data frame with all data as tabbed?
+
+```{r}
+
+
+#'  Processes each concordance including this verb 
+#' 
+#' @export
+
+ConcAsTibble <- function(concordance, verb){
+    conll_cols <- c("tokenid","token","lemma","pos","pos2","feat","head","dep","null1","null2")
+    tab <- read.csv(text=concordance,sep="\t",row.names=NULL)  
+    colnames(tab) <- conll_cols
+    return (as_tibble(tab))
+}
+
+#' Checks if a sentence contains a case where a is governed by b
+#'
+#' @param headw c(column_name, column_value, [as_regex=T/F]) 
+#' @param dependent c(column_name, column_value, [as_regex=T/F])
+#' @param sent the sentence to look in
+#'
+#' @export
+
+IsGovernedBy <- function(dependent, headw, sent){
+    matched <- 0
+    tab <- ConcAsTibble(sent)
+
+    #Determine whether or not to use regex
+    if(length(dependent) < 3) {
+        dependent <- c(dependent, F)
+    }
+    if(length(headw) < 3) {
+        headw <- c(headw, F)
+    }
+    if(headw[3]) {
+        head_idx <- which(grepl(headw[2],tab[[headw[1]]]))
+    }
+    else {
+        head_idx <- which(tab[[headw[1]]] == headw[2])
+    }
+
+    #find the head
+    head_tokenids <- tab[head_idx, "tokenid"] %>% pull("tokenid")
+
+    if(length(head_idx)>0){
+        #Look for dependents matching the condition
+        if(dependent[3]){
+            matched <- tab %>% 
+                filter(head %in% head_tokenids,grepl(dependent[2], .[[dependent[1]]]))  %>% 
+                nrow
+        }
+        else{
+            matched <- tab %>% 
+                filter(head %in% head_tokenids,.[[dependent[1]]]==dependent[2])  %>% 
+                nrow
+        }
+    }
+    return(ifelse(matched > 0, T,F))
+}
+
+IsGovernedBy(dependent=c("pos","NOU",T),
+             headw=c("pos","N.U",T),
+             sentences[1]
+             )
+
+#ConcAsTibble(sentences[1])
+
+```
+
+
+
+Now, what if we want to get cases following 
+a specific word order pattern, say, SVO?
+(TODO: determine clause boundaries...)
+
+
+```{r}
+
+#' @param pattern list(c(col, val),c(col,val)...)
+#' @param within_clause T / F
+
+FollowsPattern <- function(pattern, within_clause=T){
+
+}
+
+FollowsPattern(list(
+                    c("dep","nsubj"),
+                    c("feat""nsubj"),
+                    )
+             sentences[2]
+             )
+
+```
+
+
+
