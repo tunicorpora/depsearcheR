@@ -100,97 +100,90 @@ First, let's assume that we want to get all the sentences including
 one or more cases in which a noun is governed by a verb.
 
 TODO: first make a reference data frame with all data as tabbed?
+TODO: function to list possible columns and values
 
 ```{r}
 
 
-#'  Processes each concordance including this verb 
+#'  Makes a tibble of the raw conll string provided. Assumes one sentence.
+#' 
+#' @param concordance the raw string representing a sentence
+#' @param conll_cols the structure of the conll (names of columns)
 #' 
 #' @export
 
-ConcAsTibble <- function(concordance, verb){
-    conll_cols <- c("tokenid","token","lemma","pos","pos2","feat","head","dep","null1","null2")
+ConcAsTibble <- function(concordance, 
+                         conll_cols=c("tokenid","token","lemma","pos","pos2","feat","head","dep","null1","null2")){
     tab <- read.csv(text=concordance,sep="\t",row.names=NULL)  
     colnames(tab) <- conll_cols
     return (as_tibble(tab))
 }
 
+#' Filters a tibble representing a sentence and returns matches
+#'
+#' @param tab a conll represented sentence as a tibble
+#' @param column_name e.g. POS, lemma
+#' @param column_val what the value of the column should be, e.g N, igrat'
+#' @param use_regex if false, exact matches will be searched, if true, regexes
+#'
+#' @return a filtered tibble
+#'
+#' @export
+
+FilterConllRows <- function(tab, column_name, column_val, use_regex=F) {
+    #Determine whether or not to use regex
+    if(use_regex) {
+        indices <- which(grepl(column_val,tab[[column_name]]))
+    }
+    else if (length(column_val) > 1) {
+        indices <- which(tab[[column_name]] %in% column_val)
+    }
+    else {
+        indices <- which(tab[[column_name]] == column_val)
+    }
+
+    return (tab[indices, ])
+}
+
 #' Checks if a sentence contains a case where a is governed by b
 #'
 #' @param headw c(column_name, column_value, [as_regex=T/F]) 
-#' @param dependent c(column_name, column_value, [as_regex=T/F])
+#' @param depw c(column_name, column_value, [as_regex=T/F])
 #' @param sent the sentence to look in
 #'
 #' @export
 
-IsGovernedBy <- function(dependent, headw, sent){
+ContainsDepRel <- function(depw, headw, sent){
     matched <- 0
     tab <- ConcAsTibble(sent)
+    heads <- FilterConllRows(tab, headw[1], headw[2], 
+                             ifelse(length(headw)>2, headw[3], F))
+    deps <- FilterConllRows(tab, depw[1], depw[2], 
+                             ifelse(length(depw)>2, depw[3], F))
 
-    #Determine whether or not to use regex
-    if(length(dependent) < 3) {
-        dependent <- c(dependent, F)
-    }
-    if(length(headw) < 3) {
-        headw <- c(headw, F)
-    }
-    if(headw[3]) {
-        head_idx <- which(grepl(headw[2],tab[[headw[1]]]))
-    }
-    else {
-        head_idx <- which(tab[[headw[1]]] == headw[2])
-    }
-
-    #find the head
-    head_tokenids <- tab[head_idx, "tokenid"] %>% pull("tokenid")
-
-    if(length(head_idx)>0){
-        #Look for dependents matching the condition
-        if(dependent[3]){
-            matched <- tab %>% 
-                filter(head %in% head_tokenids,grepl(dependent[2], .[[dependent[1]]]))  %>% 
-                nrow
-        }
-        else{
-            matched <- tab %>% 
-                filter(head %in% head_tokenids,.[[dependent[1]]]==dependent[2])  %>% 
-                nrow
+    if(nrow(heads) > 0 & nrow(deps) > 0) {
+        governed <- FilterConllRows(deps, "head", heads %>% pull(tokenid), F)
+        if(nrow(governed) > 0) {
+            return ( TRUE )
         }
     }
-    return(ifelse(matched > 0, T,F))
+    return ( FALSE )
 }
 
-IsGovernedBy(dependent=c("pos","NOU",T),
-             headw=c("pos","N.U",T),
+ContainsDepRel(depw=c("pos","ADJ"),
+             headw=c("pos","NOUN"),
              sentences[1]
              )
 
-#ConcAsTibble(sentences[1])
+ConcAsTibble(sentences[1])
 
 ```
 
 
 
-Now, what if we want to get cases following 
-a specific word order pattern, say, SVO?
-(TODO: determine clause boundaries...)
-
-
 ```{r}
 
-#' @param pattern list(c(col, val),c(col,val)...)
-#' @param within_clause T / F
-
-FollowsPattern <- function(pattern, within_clause=T){
-
-}
-
-FollowsPattern(list(
-                    c("dep","nsubj"),
-                    c("feat""nsubj"),
-                    )
-             sentences[2]
-             )
+#1. find a finite verb
 
 ```
 
