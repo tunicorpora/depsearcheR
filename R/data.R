@@ -17,3 +17,11 @@
 #'
 "varpunen_sentences"
 
+#' Another sample vector of sentences
+#'
+#' This is the whole gospel of john from the copyright-free World English Bible
+#'
+#' @format tibble 
+#'
+"gospel_of_john_sentences"
+

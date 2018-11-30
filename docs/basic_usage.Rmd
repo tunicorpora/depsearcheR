@@ -357,36 +357,35 @@ p$stop()
 The small wikipedia article doesn't, of course, cause any performance problems,
 but with longer texts the progress bar is nice to have. As a larger example, 
 consider querying the entire (English translation of the) gospel of John[^john] with 
-a similar filter:
+a similar filter. This set of sentences is included with the package
+as a vector called `gospel_of_john_sentences`
 
 
 ```{r}
 
-options("conll_cols" = c("tokenid","token","lemma","feat","none", "head", "dep"))
-sentences  <- GetSentencesFromFile("../inst/extdata/gospel_of_john.txt.conll")
-
-#initialize the progress bar
-p <- progress_estimated(length(sentences))
-
-matched_sentences <- Filter(
-            function(sentence) {
-                my_matches <- 
-                    GetDeps(sentence,"feat","VBZ", T) %>% 
-                    FilterConllRows("dep","nsubj") %>% 
-                    FilterConllRows("feat","NN") 
-                #Move the progress bar:
-                p$tick()$print()
-                return(nrow(my_matches))
-            }, sentences)
-
-#Remove the progress bar
-p$stop()
+start.time <- Sys.time()
+matched_sentences <- Filter(MyFilterFunction, gospel_of_john_sentences)
+show(Sys.time() - start.time)
 
 ```
 
-TODO: a function called GetColFromConll etc
+<!-- TODO: a function called GetColFromConll etc -->
 
-On my thinkpad x220 that took around 3 seconds -- still not terribly bad.
+As you can see, on my thinkpad x220 that took around 3 seconds -- still not
+terribly bad. To get the perspective: this version of the gospel of John has 
+`r length(gospel_of_john_sentences)  %>% format(big.mark=",")` sentences.
+As a somewhat more serious work load, let's try to parse
+the whole New testament. That means 9,329 sentences (not included with this
+package).
+
+The result (on the same icore5 2.5ghz processor): `Time difference of 16.20708 secs`
+
+So, let's say that 17 seconds for around 10,000 sentences. If it means
+that 100,000 sentences will be analyzed in 170 seconds = a little less than
+3 minutes, well -- you get the perspective. Not the most effective
+way, but suitable for many cases, and if you've got time to wait,
+even for some more serious text mining work.
+
 
 I actually tested with the whole new testament, and that took.
 That might give you some idea of the possibilities of this utterly simple
@@ -394,6 +393,7 @@ library in terms of performance and larger texts.
 
 [^john]: Included, also, as a sample file from the public domain World English
 version and parsed with the Stanford coreNLP parser.
+
 
 
 
