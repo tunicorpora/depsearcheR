@@ -363,8 +363,17 @@ as a vector called `gospel_of_john_sentences`
 
 ```{r}
 
+AnotherFilter <- function(sentence) {
+    my_matches <- 
+        GetDeps(sentence,"feat","VBZ", T) %>% 
+        FilterConllRows("dep","nsubj") %>% 
+        FilterConllRows("feat","NN") 
+    return(nrow(my_matches))
+}
+
+
 start.time <- Sys.time()
-matched_sentences <- Filter(MyFilterFunction, gospel_of_john_sentences)
+matched_sentences <- Filter(AnotherFilter, gospel_of_john_sentences)
 show(Sys.time() - start.time)
 
 ```
@@ -395,6 +404,104 @@ library in terms of performance and larger texts.
 version and parsed with the Stanford coreNLP parser.
 
 
+### Getting parameters from the results
+
+In the previous examples we retrieved sentences by different
+filters. Let's move on to imagining a scenario in which
+we want to get specific parameters out of the filtered results.
+
+Consider the previous example with the sentences from the Gospel 
+of John. Our little filter, repeated below, obtained all
+the cases where a finite verb had a subject dependent:
+
+
+```{r}
+
+AnotherFilter <- function(sentence) {
+    my_matches <- 
+        GetDeps(sentence,"feat","VBZ", T) %>% 
+        FilterConllRows("dep","nsubj") %>% 
+        FilterConllRows("feat","NN") 
+    return(nrow(my_matches))
+}
+
+matched_sentences <- Filter(AnotherFilter, gospel_of_john_sentences)
+
+```
+
+This actually gives us `r length(matched_sentences)` sentences.
+What if we want to, say, list the lemmas of the different subjects?
+
+```{r}
+
+#' Retrieves one lart
+#' 
+#' @export
+
+ConllSetAsTibble <- function(sentences) {
+    indices <- seq_along(sentences)
+    lapply(indices, function(idx){
+        tib <- ConllAsTibble(sentences[idx]) %>% 
+            mutate(sent_id=idx)
+    }) %>% 
+        do.call(rbind,.)  %>% 
+        return
+}
+
+#' Applies a user-defined filter to a set of sentences
+#' 
+#' @importFrom dplyr  %>% progress_estimated
+#' @export
+
+ApplyConllFilter <- function(sents, filter_funct, return_type="raw") {
+    #launch a progress bar from dplyr
+    p <- progress_estimated(length(sents))
+    if(return_type == "raw"){
+        #create a temporary callback
+        funct <- function(s){
+            matched <- filter_funct(s)
+            p$tick()$print()
+            #return a truthy value
+            return(nrow(matched))
+        }
+        #Run base R's Filter
+        return(Filter(funct, sents))
+    }
+    if(return_type == "matches"){
+        #create a temporary callback
+        funct <- function(s){
+            matched <- filter_funct(s)
+            p$tick()$print()
+            #return the matched rows
+            return(matched)
+        }
+
+        #return a combined tibble
+        matchlist <- lapply(sents, funct) 
+        matchtibble <- do.call(rbind, matchlist)  
+        return(matchtibble)
+
+    }
+    p$stop()
+}
+
+#my_result_set <- ConllSetAsTibble(matched_sentences)
+
+AnotherFilter <- function(sentence) {
+        GetDeps(sentence,"feat","VBZ", T) %>% 
+        FilterConllRows("dep","nsubj") %>% 
+        FilterConllRows("feat","NN")  %>% 
+        return
+}
+
+newmatches <- ApplyConllFilter(gospel_of_john_sentences, AnotherFilter, "matches")
+
+
+#my_result_set %>% AnotherFilter
+#    filter(dep=="nsubj") %>% 
+
+
+```
 
 
 
