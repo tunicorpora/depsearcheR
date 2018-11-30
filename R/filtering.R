@@ -89,28 +89,6 @@ GetDeps <- function(words, sentence) {
 
 
 
-#' Gets the dependends of words specified by a condition
-#'
-#' @param tab a conll represented sentence as a tibble
-#' @param column_name e.g. POS, lemma
-#' @param column_val what the value of the column should be, e.g N, igrat'
-#' @param use_regex if false, exact matches will be searched, if true, regexes
-#' @param is_negative if True, will filter only rows NOT matching the condition
-#'
-#' @return a filtered tibble
-#'
-#' @export
-
-GetDeps <- function(tab, column_name, column_val, use_regex=F, is_negative=F) {
-    if(is.character(tab)) {
-        tab <- ConllAsTibble(tab)
-    }
-    heads <- FilterConllRows(tab, column_name, column_val, use_regex, is_negative)
-    return (FilterConllRows(tab, "head", heads$tokenid))
-}
-
-
-
 #' Applies a user-defined filter to a set of sentences
 #' 
 #' @param sents a vector of sentences
@@ -124,7 +102,7 @@ GetDeps <- function(tab, column_name, column_val, use_regex=F, is_negative=F) {
 
 ApplyConllFilter <- function(sents, filter_funct, return_type="raw") {
     #launch a progress bar from dplyr
-    if(return_type %in% c("raw","both","both_pretty")){
+    if(return_type == "raw"){
         p <- progress_estimated(length(sents))
         #create a temporary callback
         funct <- function(s){
@@ -136,13 +114,20 @@ ApplyConllFilter <- function(sents, filter_funct, return_type="raw") {
         #Run base R's Filter
         rawmatches <- Filter(funct, sents)
         p$stop()
-    }
 
-    if(return_type %in% c("matches","both","both_pretty")){
+        return(rawmatches)
+    }
+    else{
         p <- progress_estimated(length(sents))
         #create a temporary callback
         funct <- function(s){
             matched <- filter_funct(s)
+            if(nrow(matched) & return_type == "both"){
+                matched$sent <- s
+            }
+            if(nrow(matched) & return_type == "both_pretty"){
+                matched$sent <- ConllAsSentence(s)
+            }
             p$tick()$print()
             #return the matched rows
             return(matched)
@@ -152,31 +137,8 @@ ApplyConllFilter <- function(sents, filter_funct, return_type="raw") {
         matchlist <- lapply(sents, funct) 
         matchtibble <- do.call(rbind, matchlist)  
         p$stop()
-    }
-
-
-    if(return_type == "both"){
-        newtibble <- matchtibble %>% 
-            mutate(sent = rawmatches)  
-        return(newtibble)
-    }
-
-    if(return_type == "both_pretty"){
-        matchtibble$sent = sapply(rawmatches,ConllAsSentence)  %>% 
-            unname  %>% 
-            unlist
         return(matchtibble)
     }
-
-
-    if(return_type == "matches"){
-        return(matchtibble)
-    }
-
-    if(return_type == "raw"){
-        return(rawmatches)
-    }
-
 
 }
 

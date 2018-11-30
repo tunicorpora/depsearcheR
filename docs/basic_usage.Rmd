@@ -380,10 +380,11 @@ again using the `options` function.
 
 AnotherFilter <- function(sentence) {
     sentence  %>% 
-        FilterConllRows("dep","nsubj") %>% 
-        FilterConllRows("feat","NN")  %>% 
-        GetHeads(sentence) %>% 
         FilterConllRows("feat", "^V", use_regex=T) %>% 
+        FilterConllRows("feat", "VV", is_negative=T) %>% 
+        GetDeps(sentence) %>% 
+        FilterConllRows("dep","nsubj") %>% 
+        FilterConllRows("feat",c("NN","NNP"))  %>% 
         return
 }
 
@@ -392,7 +393,6 @@ start.time <- Sys.time()
 matched_sentences <- ApplyConllFilter(gospel_of_john_sentences, AnotherFilter)
 show(Sys.time() - start.time)
 show(length(matched_sentences))
-matched_sentences[1] %>% ConllAsTibble
 
 ```
 
@@ -429,17 +429,21 @@ that is, to specifying `return_type = 'matches'`..
 
 Consider the previous example with the sentences from the Gospel 
 of John. Our little filter, repeated below, obtained all
-the cases where a finite verb had a subject dependent:
+the cases where a finite verb had a subject dependent which
+was a noun:
 
 ```{r}
 
+
 AnotherFilter <- function(sentence) {
-        sentence %>% 
-            FilterConllRows("dep","nsubj") %>% 
-            FilterConllRows("feat","NN")  %>% 
-            GetDeps(sentence) %>% 
+    sentence  %>% 
+        FilterConllRows("feat", "^V", use_regex=T) %>% 
+        GetDeps(sentence) %>% 
+        FilterConllRows("dep","nsubj") %>% 
+        FilterConllRows("feat",c("NN","NNP"))  %>% 
         return
 }
+
 
 matched_words <- ApplyConllFilter(gospel_of_john_sentences, AnotherFilter, "matches")
 
@@ -454,56 +458,83 @@ looking at which lemmas are most frequent as the subject:
 
 ```{r}
 
-AnotherFilter <- function(sentence) {
-        GetHeads(sentence,"feat","VBZ", T) %>% 
-        FilterConllRows("dep","nsubj") %>% 
-        FilterConllRows("feat","NN")  %>% 
-        return
-}
-
-
 matched_words %>% count(lemma)  %>% arrange(desc(n))
 
 ```
 
-So usually it's "man" who does something in the gospel of John. 
-This is, however, so far not not 
+No surprise, the most frequent subject is the proper name "Jesus".
+But what is it that he keeps on doing? Let's modify
+the filter a little:
 
 ```{r}
 
 
-gospel_of_john_sentences[3]  %>% ConllAsTibble
 
-test <- function(sentence){
-    sentence %>% 
-        FilterConllRows("lemma", "Jesus") %>% 
-        GetHeads(sentence)  %>% 
+YetAnotherFilter <- function(sentence) {
+    sentence  %>% 
+        FilterConllRows("feat", "^V", use_regex=T) %>% 
+        GetDeps(sentence) %>% 
+        FilterConllRows("dep","nsubj") %>% 
+        FilterConllRows("lemma", "Jesus")  %>% 
+        GetHeads(sentence) %>% 
         return
 }
 
-ApplyConllFilter(js,test, "matches") %>% 
-    count(feat) %>% 
-    arrange(desc(n))
-
-jshead <- ApplyConllFilter(gospel_of_john_sentences,test, "matches")
-
-js <- ApplyConllFilter(gospel_of_john_sentences,function(x){x  %>% })
-
-gospel_of_john_sentences[3]  %>% 
-    FilterConllRows("feat", "NN") %>% 
-    GetDeps(gospel_of_john_sentences[3])  %>% 
-    GetHeads(gospel_of_john_sentences[3])  
-
-    FilterConllRows("dep", "ROOT")
-funct <- function(s){
-    first
-}
+verbs_with_Jesus <- ApplyConllFilter(gospel_of_john_sentences,YetAnotherFilter,"both_pretty")
 
 ```
 
+The filter became a little circular (we're first taking all the dependents
+of verbs, then filtering those and then getting their heads again...),
+but it does the job:
+
+```{r}
+
+verbs_with_Jesus %>% count(lemma) %>% arrange(desc(n))
+
+```
+
+Now, what if we would like to combine this information to get 
+ngrams of sorts?
+
+```{r}
+
+a <- function(sentence) {
+    sentence  %>% 
+        FilterConllRows("feat", "^V", use_regex=T) %>% 
+        GetDeps(sentence) %>% 
+        FilterConllRows("dep","nsubj") %>% 
+        FilterConllRows("feat",c("NN","NNP"))  %>% 
+        return
+}
 
 
+b <- function(sentence) {
+    sentence  %>% 
+        FilterConllRows("feat", "^V", use_regex=T) %>% 
+        GetDeps(sentence) %>% 
+        FilterConllRows("dep","nsubj") %>% 
+        FilterConllRows("feat",c("NN","NNP"))  %>% 
+        GetHeads(sentence) %>% 
+        return
+}
 
+
+subj <- ApplyConllFilter(gospel_of_john_sentences,a,"both_pretty")
+verb <- ApplyConllFilter(gospel_of_john_sentences,b,"both_pretty")
+
+subj %>% 
+    select(lemma, sent) %>% 
+    left_join(verb  %>% select(lemma, sent), by="sent")   %>% 
+    count(lemma.x, lemma.y) %>% 
+    arrange(lemma.x, desc(n)) %>% 
+    filter(n>4) %>% 
+    print(n=99)
+
+```
+
+And we could, of course keep on going and draw
+some graphs, build statistical models and so on...
 
 
 
