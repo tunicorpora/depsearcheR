@@ -26,7 +26,10 @@ FilterConllRows <- function(tab, column_name, column_val, use_regex=F, is_negati
         indices <- which(tab[[column_name]] == column_val)
     }
 
-    if(is_negative){
+    if(length(indices) == 0 & is_negative){
+        return(tab)
+    }
+    else if(is_negative){
         return (tab[-indices, ])
     }
     else{
@@ -61,6 +64,31 @@ ContainsDepRel <- function(tab, depw, headw){
     return ( FALSE )
 }
 
+
+#' Gets the head of a word / words
+#'
+#'
+#' @return a filtered tibble
+#'
+#' @export
+
+GetHeads <- function(words, sentence) {
+    return (FilterConllRows(sentence, "tokenid", words$head))
+}
+
+#' Gets the dependents of a word / words
+#'
+#'
+#' @return a filtered tibble
+#'
+#' @export
+
+GetDeps <- function(words, sentence) {
+    return (FilterConllRows(sentence, "head", words$tokenid))
+}
+
+
+
 #' Gets the dependends of words specified by a condition
 #'
 #' @param tab a conll represented sentence as a tibble
@@ -87,7 +115,7 @@ GetDeps <- function(tab, column_name, column_val, use_regex=F, is_negative=F) {
 #' 
 #' @param sents a vector of sentences
 #' @param filter_funct a user-defined filter function
-#' @param return_type 'raw' or 'matches': raw returns just a filtered vector, matches returns the actual words that matched
+#' @param return_type 'raw', 'matches', 'both', 'both_pretty': raw returns just a filtered vector, matches returns the actual words that matched, both returns matches and the conll input as a separate variable and both_pretty transforms the conll input to an ordinary human readable sentence
 #' 
 #' @return depending on the return_type parameter, either a vector of sentences or a tibble of matches
 #' 
