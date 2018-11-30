@@ -448,42 +448,6 @@ ConllSetAsTibble <- function(sentences) {
         return
 }
 
-#' Applies a user-defined filter to a set of sentences
-#' 
-#' @importFrom dplyr  %>% progress_estimated
-#' @export
-
-ApplyConllFilter <- function(sents, filter_funct, return_type="raw") {
-    #launch a progress bar from dplyr
-    p <- progress_estimated(length(sents))
-    if(return_type == "raw"){
-        #create a temporary callback
-        funct <- function(s){
-            matched <- filter_funct(s)
-            p$tick()$print()
-            #return a truthy value
-            return(nrow(matched))
-        }
-        #Run base R's Filter
-        return(Filter(funct, sents))
-    }
-    if(return_type == "matches"){
-        #create a temporary callback
-        funct <- function(s){
-            matched <- filter_funct(s)
-            p$tick()$print()
-            #return the matched rows
-            return(matched)
-        }
-
-        #return a combined tibble
-        matchlist <- lapply(sents, funct) 
-        matchtibble <- do.call(rbind, matchlist)  
-        return(matchtibble)
-
-    }
-    p$stop()
-}
 
 #my_result_set <- ConllSetAsTibble(matched_sentences)
 
@@ -494,7 +458,10 @@ AnotherFilter <- function(sentence) {
         return
 }
 
-newmatches <- ApplyConllFilter(gospel_of_john_sentences, AnotherFilter, "matches")
+newmatches <- ApplyConllFilter(gospel_of_john_sentences, AnotherFilter, "both_pretty")
+#rawmatches <- ApplyConllFilter(gospel_of_john_sentences, AnotherFilter, "raw")
+#newmatches  %>% count(lemma) %>% arrange(desc(n))
+#newmatches %>% mutate(sent = rawmatches) -> newmatches
 
 
 #my_result_set %>% AnotherFilter

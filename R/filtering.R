@@ -81,3 +81,74 @@ GetDeps <- function(tab, column_name, column_val, use_regex=F, is_negative=F) {
     return (FilterConllRows(tab, "head", heads$tokenid))
 }
 
+
+
+#' Applies a user-defined filter to a set of sentences
+#' 
+#' @param sents a vector of sentences
+#' @param filter_funct a user-defined filter function
+#' @param return_type 'raw' or 'matches': raw returns just a filtered vector, matches returns the actual words that matched
+#' 
+#' @return depending on the return_type parameter, either a vector of sentences or a tibble of matches
+#' 
+#' @importFrom dplyr  %>% progress_estimated
+#' @export
+
+ApplyConllFilter <- function(sents, filter_funct, return_type="raw") {
+    #launch a progress bar from dplyr
+    if(return_type %in% c("raw","both","both_pretty")){
+        p <- progress_estimated(length(sents))
+        #create a temporary callback
+        funct <- function(s){
+            matched <- filter_funct(s)
+            p$tick()$print()
+            #return a truthy value
+            return(nrow(matched))
+        }
+        #Run base R's Filter
+        rawmatches <- Filter(funct, sents)
+        p$stop()
+    }
+
+    if(return_type %in% c("matches","both","both_pretty")){
+        p <- progress_estimated(length(sents))
+        #create a temporary callback
+        funct <- function(s){
+            matched <- filter_funct(s)
+            p$tick()$print()
+            #return the matched rows
+            return(matched)
+        }
+
+        #return a combined tibble
+        matchlist <- lapply(sents, funct) 
+        matchtibble <- do.call(rbind, matchlist)  
+        p$stop()
+    }
+
+
+    if(return_type == "both"){
+        newtibble <- matchtibble %>% 
+            mutate(sent = rawmatches)  
+        return(newtibble)
+    }
+
+    if(return_type == "both_pretty"){
+        matchtibble$sent = sapply(rawmatches,ConllAsSentence)  %>% 
+            unname  %>% 
+            unlist
+        return(matchtibble)
+    }
+
+
+    if(return_type == "matches"){
+        return(matchtibble)
+    }
+
+    if(return_type == "raw"){
+        return(rawmatches)
+    }
+
+
+}
+
