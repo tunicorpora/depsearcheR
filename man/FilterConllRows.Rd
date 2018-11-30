@@ -8,7 +8,7 @@ FilterConllRows(tab, column_name, column_val, use_regex = F,
   is_negative = F)
 }
 \arguments{
-\item{tab}{a conll represented sentence as a tibble}
+\item{tab}{a conll represented sentence as a tibble OR a string representation of the sentence which will be converted to a tibble}
 
 \item{column_name}{e.g. POS, lemma}
 

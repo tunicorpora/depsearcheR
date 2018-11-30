@@ -7,7 +7,7 @@
 ContainsDepRel(tab, depw, headw)
 }
 \arguments{
-\item{tab}{the sentence to look in, as a tibble}
+\item{tab}{the sentence to look in, as a tibble OR a raw string}
 
 \item{depw}{c(column_name, column_value, [as_regex=T/F])}
 

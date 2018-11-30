@@ -4,8 +4,7 @@
 \alias{ConllAsTibble}
 \title{Makes a tibble of the raw conll string provided. Assumes one sentence.}
 \usage{
-ConllAsTibble(conll, conll_cols = c("tokenid", "token", "lemma", "pos",
-  "pos2", "feat", "head", "dep", "null1", "null2"))
+ConllAsTibble(conll)
 }
 \arguments{
 \item{conll}{the raw string representing a sentence}

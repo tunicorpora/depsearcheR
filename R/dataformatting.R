@@ -7,8 +7,8 @@
 #' 
 #' @export
 
-ConllAsTibble <- function(conll, 
-                         conll_cols=c("tokenid","token","lemma","pos","pos2","feat","head","dep","null1","null2")){
+ConllAsTibble <- function(conll){
+    conll_cols <- getOption("conll_cols", default=c("tokenid","token","lemma","pos","pos2","feat","head","dep","null1","null2"))
     tab <- read.csv(text=conll,sep="\t",row.names=NULL, header=F)  
     colnames(tab) <- conll_cols
     return (as_tibble(tab))
