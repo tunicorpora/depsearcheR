@@ -671,20 +671,28 @@ we want our data set filter to return an additional column
 
 options("conll_cols" = c("tokenid","token","lemma","feat","none", "head", "dep"))
 
-ApplyConllFilter_df <- function(tab, funct, sent_col, return_col=""){
+ApplyConllFilter_df <- function(tab, funct, sent_col, return_col="", return_all=F){
     if(return_col != ""){
         matched <- ApplyConllFilter(tab[[sent_col]], funct, "both")
         mtab <- matched  %>% 
             select(sent, filtered_col=return_col) 
         mtab[[sent_col]] <- mtab$sent
         mtab <- mtab  %>% select(-sent)
-        mt2 <- mtab %>% left_join(tab, by="parsed_text") 
-        return(mt2)
+        filtered <- mtab %>% left_join(tab, by=sent_col) 
+        if(return_all){
+            tab2 <- tab %>% mutate(filtered_col=NA)
+            filtered <- tab2[!tab2[[sent_col]] %in% mtab[[sent_col]], ] %>% 
+                rbind(., filtered)
+        }
     }
-    return (tab)
+    else{
+        matched <- ApplyConllFilter(tab[[sent_col]], funct)
+        filtered <- tab[tab[[sent_col]]  %in% matched, ]
+    }
+    return (filtered)
 }
 
-temp <- ucl_ref %>% ApplyConllFilter_df(ref_filt, "parsed_text", "lemma")  
+temp <- ucl_ref %>% ApplyConllFilter_df(ref_filt, "parsed_text", "lemma", T)  
 
 
 ```
