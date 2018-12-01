@@ -307,7 +307,7 @@ MyFilterFunction <- function(sentence) {
 
 There is one requirement to keep in mind when creating these filters: every
 filter must take a single sentence as its only argument and return the filtered
-matches so that they can be further processed. Befor the return statement
+matches so that they can be further processed. Before the return statement
 you can have as complex or as simple a set of code as you wish.
 The filters should be used with the `ApplyConllFilter` function of this library
 in the following manner:
@@ -541,7 +541,6 @@ A correspondence analysis, maybe?
 ```{r}
 
 library(ca)
-library(tidyr)
 
 subj %>% 
     select(lemma, sent) %>% 
@@ -633,7 +632,7 @@ show(length(matches))
 Right, `r length(matches)` matches, so the filter is working. But how to 
 filter the actual data frame, not just the column with the annotated sentences?
 For this use case, the package includes a version of the `ApplyConllFilter`
-called `ApplyConllFilter_df`. It's first argument is a tibble (or a data frame)
+called `ApplyConllFilter_df`. Its first argument is the tibble (or data frame)
 to be filtered, the second argument is the custom filter function
 we've created and the third argument is the name of the column
 containing the conll annototated sentence. To filter our `ucl_ref`
@@ -650,7 +649,7 @@ ref_as_obj <- ucl_ref %>%
 
 ...and we get the twelve rows that match the condition. We could now 
 check the metadata of the rows to look at, for instance, where 
-did these kinds of tweets come from:
+ these kinds of tweets are coming from:
 
 
 ```{r}
@@ -660,62 +659,55 @@ ref_as_obj  %>%  count(location)
 
 ```
 
-
-
-We can also spesify, if
-we want our data set filter to return an additional column 
+We can also spesify, if we want our data set filter to return an
+additional column (called `filtered_col`) which contains
+some property of the word (TODO: words) matched by
+the filter. For instance, if we would like to get
+the lemmas of the head verbs in the cases where *referee*
+is used as a direct object, we could do:
 
 
 ```{r}
 
 
-options("conll_cols" = c("tokenid","token","lemma","feat","none", "head", "dep"))
-
-ApplyConllFilter_df <- function(tab, funct, sent_col, return_col="", return_all=F){
-    if(return_col != ""){
-        matched <- ApplyConllFilter(tab[[sent_col]], funct, "both")
-        mtab <- matched  %>% 
-            select(sent, filtered_col=return_col) 
-        mtab[[sent_col]] <- mtab$sent
-        mtab <- mtab  %>% select(-sent)
-        filtered <- mtab %>% left_join(tab, by=sent_col) 
-        if(return_all){
-            tab2 <- tab %>% mutate(filtered_col=NA)
-            filtered <- tab2[!tab2[[sent_col]] %in% mtab[[sent_col]], ] %>% 
-                rbind(., filtered)
-        }
-    }
-    else{
-        matched <- ApplyConllFilter(tab[[sent_col]], funct)
-        filtered <- tab[tab[[sent_col]]  %in% matched, ]
-    }
-    return (filtered)
-}
-
-temp <- ucl_ref %>% ApplyConllFilter_df(ref_filt, "parsed_text", "lemma", T)  
+filtered <- ucl_ref %>% 
+    ApplyConllFilter_df(ref_filt, "parsed_text", return_col="lemma")   
 
 
 ```
 
-The modified filter returns the number of matched rows: if this is more than zero,
-the value is considered *truthy*, otherwise it's *falsy*. These kinds of filters
-could be used the following way:
+Now we could check, for instance, if a certain 
+verb + *referee* as the object combination attracts
+more retweets than others by using the metadata
+available in the data frame:
+
 
 ```{r}
 
-ref_as_object <- ucl_ref  %>% 
-    filter(ref_filt_truthy(parsed_text))
+filtered %>% 
+    count(filtered_col, retweets) %>% 
+    arrange(desc(n))
 
 ```
 
+Well, oviously the data set here is too limited to get any 
+kind of reasonable results, but you get the idea.
+
+As a final remark about the `ApplyConllFilter_df`
+function, it should be added that there is also the possibility
+to return the whole data frame with the `filtered_col` column
+so that for the rows that don't match the syntactic filter 
+the function just returns NA:
+
+```{r}
+
+filtered2 <- ucl_ref %>% 
+    ApplyConllFilter_df(ref_filt, "parsed_text", return_col="lemma", return_all = T) 
 
 
-# TODO
+filtered2  %>% count(filtered_col) %>% arrange(desc(n))
 
-TODO: first make a reference data frame with all data as tabbed?
-TODO: function to list possible columns and values
-
-
+```
 
 
 

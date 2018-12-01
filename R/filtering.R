@@ -144,3 +144,34 @@ ApplyConllFilter <- function(sents, filter_funct, return_type="raw") {
 
 #' Applies a filter to a data frame
 #' 
+#' @param a tibble / the data frame containing a column with conll annotated data
+#' @param funct a user-defined filter function
+#' @param sent_col the name of the column with conll data
+#' @param return_col if specified, will add a new column to the data frame (called filtered_col) with the value of the specified column in the conll input  (e.g. lemmas of the matched words)
+#' @param return_all if return_col as been specified and this is set to TRUE, returns the whole data frame and adds the filtered_col value to every row
+#' 
+#' 
+#' @importFrom dplyr  %>% left_join select mutate
+#' @export
+
+ApplyConllFilter_df <- function(tab, funct, sent_col, return_col="", return_all=F){
+    if(return_col != ""){
+        matched <- ApplyConllFilter(tab[[sent_col]], funct, "both")
+        mtab <- matched  %>% 
+            select(sent, filtered_col=return_col) 
+        mtab[[sent_col]] <- mtab$sent
+        mtab <- mtab  %>% select(-sent)
+        filtered <- mtab %>% left_join(tab, by=sent_col) 
+        if(return_all){
+            tab2 <- tab %>% mutate(filtered_col=NA)
+            filtered <- tab2[!tab2[[sent_col]] %in% mtab[[sent_col]], ] %>% 
+                rbind(., filtered)
+        }
+    }
+    else{
+        matched <- ApplyConllFilter(tab[[sent_col]], funct)
+        filtered <- tab[tab[[sent_col]]  %in% matched, ]
+    }
+    return (filtered)
+}
+
