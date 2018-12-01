@@ -1,0 +1,6 @@
+library(bookdown)
+library(rmarkdown)
+library(base)
+library(stats)
+library(depsearcheR)
+library(dplyr)
