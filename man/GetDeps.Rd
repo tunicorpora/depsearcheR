@@ -2,24 +2,13 @@
 % Please edit documentation in R/filtering.R
 \name{GetDeps}
 \alias{GetDeps}
-\title{Gets the dependends of words specified by a condition}
+\title{Gets the dependents of a word / words}
 \usage{
-GetDeps(tab, column_name, column_val, use_regex = F, is_negative = F)
-}
-\arguments{
-\item{tab}{a conll represented sentence as a tibble}
-
-\item{column_name}{e.g. POS, lemma}
-
-\item{column_val}{what the value of the column should be, e.g N, igrat'}
-
-\item{use_regex}{if false, exact matches will be searched, if true, regexes}
-
-\item{is_negative}{if True, will filter only rows NOT matching the condition}
+GetDeps(words, sentence)
 }
 \value{
 a filtered tibble
 }
 \description{
-Gets the dependends of words specified by a condition
+Gets the dependents of a word / words
 }

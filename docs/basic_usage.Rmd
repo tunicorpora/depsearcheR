@@ -617,15 +617,6 @@ ref_filt <- function(sentence){
         return
 }
 
-ApplyConllFilter_df <- function(tab, funct, sent_col){
-    matched <- ApplyConllFilter(tab[[sent_col]], funct)
-    filtered <- tab[tab[[sent_col]]  %in% matched, ]
-}
-
-ucl_ref %>% 
-    ApplyConllFilter_df(ref_filt, "parsed_text") %>% 
-    nrow
-
 
 ```
 
@@ -641,21 +632,59 @@ show(length(matches))
 
 Right, `r length(matches)` matches, so the filter is working. But how to 
 filter the actual data frame, not just the column with the annotated sentences?
-The first way is to turn our filter function to something that returns
-a truthy value instead of the matched rows. Look at the following example:
+For this use case, the package includes a version of the `ApplyConllFilter`
+called `ApplyConllFilter_df`. It's first argument is a tibble (or a data frame)
+to be filtered, the second argument is the custom filter function
+we've created and the third argument is the name of the column
+containing the conll annototated sentence. To filter our `ucl_ref`
+tibble so that we're left with only the cases where the word *referee* is used
+as a direct object of a verb we would simply run:
 
 
 ```{r}
 
-ref_filt_truthy <- function(sentence){
-    sentence  %>% 
-        FilterConllRows("lemma", "referee") %>% 
-        FilterConllRows("dep", "dobj") %>% 
-        GetHeads(sentence) %>% 
-        FilterConllRows("feat", "^V", T) %>% 
-        nrow %>% 
-        return
+ref_as_obj <- ucl_ref %>% 
+    ApplyConllFilter_df(ref_filt, "parsed_text") 
+
+```
+
+...and we get the twelve rows that match the condition. We could now 
+check the metadata of the rows to look at, for instance, where 
+did these kinds of tweets come from:
+
+
+```{r}
+
+ref_as_obj  %>%  count(location)
+
+
+```
+
+
+
+We can also spesify, if
+we want our data set filter to return an additional column 
+
+
+```{r}
+
+
+options("conll_cols" = c("tokenid","token","lemma","feat","none", "head", "dep"))
+
+ApplyConllFilter_df <- function(tab, funct, sent_col, return_col=""){
+    if(return_col != ""){
+        matched <- ApplyConllFilter(tab[[sent_col]], funct, "both")
+        mtab <- matched  %>% 
+            select(sent, filtered_col=return_col) 
+        mtab[[sent_col]] <- mtab$sent
+        mtab <- mtab  %>% select(-sent)
+        mt2 <- mtab %>% left_join(tab, by="parsed_text") 
+        return(mt2)
+    }
+    return (tab)
 }
+
+temp <- ucl_ref %>% ApplyConllFilter_df(ref_filt, "parsed_text", "lemma")  
 
 
 ```

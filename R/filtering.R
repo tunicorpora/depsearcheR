@@ -142,3 +142,5 @@ ApplyConllFilter <- function(sents, filter_funct, return_type="raw") {
 
 }
 
+#' Applies a filter to a data frame
+#' 
