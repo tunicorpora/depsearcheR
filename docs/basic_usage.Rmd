@@ -523,21 +523,36 @@ b <- function(sentence) {
 subj <- ApplyConllFilter(gospel_of_john_sentences,a,"both_pretty")
 verb <- ApplyConllFilter(gospel_of_john_sentences,b,"both_pretty")
 
-subj %>% 
+tab <- subj %>% 
     select(lemma, sent) %>% 
     left_join(verb  %>% select(lemma, sent), by="sent")   %>% 
     count(lemma.x, lemma.y) %>% 
     arrange(lemma.x, desc(n)) %>% 
-    filter(n>4) %>% 
-    print(n=99)
+    filter(n>4) 
+
+tab  %>% print(n=99)
 
 ```
 
 And we could, of course keep on going and draw
 some graphs, build statistical models and so on...
+A correspondence analysis, maybe?
+
+```{r}
+
+library(ca)
+library(tidyr)
+
+subj %>% 
+    select(lemma, sent) %>% 
+    left_join(verb  %>% select(lemma, sent), by="sent") %>% 
+    filter(lemma.x %in% tab$lemma.x, lemma.y %in% tab$lemma.y)  %>% 
+    mutate(lemma.x = as.character(lemma.x), lemma.y=as.character(lemma.y)) %>% 
+    ca(~lemma.x + lemma.y, data=.) %>% 
+    plot
 
 
-
+```
 
 
 ## Filtering concordances
@@ -549,12 +564,13 @@ containing a list of concordances with more information than
 just the actual conll-annotated sentence.
 
 The basic idea is to have the data in a data frame / tibble where one row
-corresponds to one sentence and there is a column containing the conll
-representation of the sentence. In addition, you probably have some variables,
-at least metadata an the like. One sample use case is, for instance, if you've queried 
-for Twitter data and would like to have each tweet parsed and then use
-the conll output of the tweet together with the massive amounts of 
-metadata variables provided by the Twitter API for each tweet.
+corresponds to one sentence (or one relevant annotated context of any
+length) and there is a column containing the conll representation of the
+sentence. In addition, you probably have some variables, at least metadata
+an the like. One sample use case is, for instance, if you've queried for
+Twitter data and would like to have each tweet parsed and then use the
+conll output of the tweet together with the massive amounts of metadata
+variables provided by the Twitter API for each tweet.
 
 Here's a toy example of such a task.
 
@@ -573,10 +589,11 @@ package.
 
 ```
 
-I used the method described in the [webcorpcrawler package](https://github.com/utacorpora/webcorpcrawler/blob/master/docs/add_annotations_example.md)
-to add syntactic annotations using Stanford Core-NLP. This gave me the following data set,
-available as part of this package.
-(I've stripped away most of the props offered by the Twitter API since there is A LOT of them)
+I used the method described in the context of the [webcorpcrawler python utility](https://github.com/utacorpora/webcorpcrawler/blob/master/docs/add_annotations_example.md)
+to add syntactic annotations using Stanford Core-NLP. This gave me the
+following data set, available, as mentioned, as part of this package. (I've
+stripped away most of the props offered by the Twitter API since there is A LOT
+of them)
 
 ```{r}
 
@@ -584,16 +601,75 @@ ucl_ref
 
 ```
 
+In the `ucl_ref` dataset, the conll annotated raw text is stored in the `parsed_text`
+column. Let's do something analogous to the previous example and 
+look at the verbs the word 'referee' is an object of.
+First, let's build our filter:
+
+```{r}
+
+ref_filt <- function(sentence){
+    sentence  %>% 
+        FilterConllRows("lemma", "referee") %>% 
+        FilterConllRows("dep", "dobj") %>% 
+        GetHeads(sentence) %>% 
+        FilterConllRows("feat", "^V", T) %>% 
+        return
+}
+
+ApplyConllFilter_df <- function(tab, funct, sent_col){
+    matched <- ApplyConllFilter(tab[[sent_col]], funct)
+    filtered <- tab[tab[[sent_col]]  %in% matched, ]
+}
+
+ucl_ref %>% 
+    ApplyConllFilter_df(ref_filt, "parsed_text") %>% 
+    nrow
 
 
+```
+
+We could test the filter with using just the parsed_text column as a vector:
+
+```{r}
+
+matches <- ApplyConllFilter(ucl_ref$parsed_text, ref_filt)
+
+show(length(matches))
+
+```
+
+Right, `r length(matches)` matches, so the filter is working. But how to 
+filter the actual data frame, not just the column with the annotated sentences?
+The first way is to turn our filter function to something that returns
+a truthy value instead of the matched rows. Look at the following example:
 
 
-such as the source of the concordance
+```{r}
+
+ref_filt_truthy <- function(sentence){
+    sentence  %>% 
+        FilterConllRows("lemma", "referee") %>% 
+        FilterConllRows("dep", "dobj") %>% 
+        GetHeads(sentence) %>% 
+        FilterConllRows("feat", "^V", T) %>% 
+        nrow %>% 
+        return
+}
 
 
-Another basic use case is if you have a data set consisting of concordances,
-acquired through, for instance, a query to a web corpus
+```
 
+The modified filter returns the number of matched rows: if this is more than zero,
+the value is considered *truthy*, otherwise it's *falsy*. These kinds of filters
+could be used the following way:
+
+```{r}
+
+ref_as_object <- ucl_ref  %>% 
+    filter(ref_filt_truthy(parsed_text))
+
+```
 
 
 
