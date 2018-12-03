@@ -131,6 +131,7 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <h4 class="author"><em>Juho Härme</em></h4>
 <h4 class="date"><em>2018-12-03</em></h4>
 </div>
+<p><a href="https://github.com/utacorpora/depsearcheR"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_red_aa0000.png" alt="Fork me on GitHub"></a></p>
 <p>The DepsearcheR package is a simple utility made for the purpose of using R for corpus analyses involving the utilization of dependency annotations represented in some version of the CoNLL format (cf. e.g <a href="https://stackoverflow.com/questions/27416164/what-is-conll-data-format">here</a>).</p>
 <div id="installation" class="section level1">
 <h1><span class="header-section-number">1</span> Installation</h1>
@@ -372,7 +373,7 @@ matched_sentences &lt;-<span class="st"> </span><span class="kw">ApplyConllFilte
 start.time &lt;-<span class="st"> </span><span class="kw">Sys.time</span>()
 matched_sentences &lt;-<span class="st"> </span><span class="kw">ApplyConllFilter</span>(gospel_of_john_sentences, AnotherFilter)
 <span class="kw">show</span>(<span class="kw">Sys.time</span>() <span class="op">-</span><span class="st"> </span>start.time)</code></pre></div>
-<pre><code>## Time difference of 4.017907 secs</code></pre>
+<pre><code>## Time difference of 4.102786 secs</code></pre>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">show</span>(<span class="kw">length</span>(matched_sentences))</code></pre></div>
 <pre><code>## [1] 501</code></pre>
 <!-- TODO: a function called GetColFromConll etc -->
