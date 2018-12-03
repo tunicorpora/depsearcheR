@@ -360,8 +360,10 @@ the results of our queries, not just count how many matches we got.
 This will be more closely illustrated below.
 
 
+### Caveat: performance
+
 The kind of queries presented above work okay with the kind of toy files used
-here as examples. However, if we have a larger text, this really not an
+here as examples. However, if we have a larger text, this is really not an
 effective way of mining it. However, if you don't mind the query running for a
 while, you can, of course, give this approach a go. 
 For that kind cases, `ApplyConllFilter` uses a progress bar with an estimation
