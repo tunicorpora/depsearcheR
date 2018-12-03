@@ -13,6 +13,18 @@ The DepsearcheR package is a simple utility made for the purpose of using R for
 corpus analyses involving the utilization of dependency annotations represented
 in some version of the CoNLL format (cf. e.g [here](https://stackoverflow.com/questions/27416164/what-is-conll-data-format)).
 
+# Installation
+
+
+Use either the `devtools` package, or - if devtools isn't installed, then
+probably preferably - the more lightweight `remotes` package. Both 
+have  the `install_github` function needed to do the job:
+
+```r
+library(remotes)
+install_github('utacorpora/depsearcheR')
+```
+
 # Example data
  
 
@@ -431,7 +443,7 @@ that is, to specifying `return_type = 'matches'`..
 
 Consider the previous example with the sentences from the Gospel 
 of John. Our little filter, repeated below, obtained all
-the cases where a finite verb had a subject dependent which
+the cases where a verb had a subject dependent which
 was a noun:
 
 ```{r}
@@ -455,7 +467,7 @@ Now we have a tibble called `matched_words` which contains all the words (all
 the rows from the conll representations of sentences). With this tibble we
 can do any statistical operations we would normally do with or data sets.
 As an especially simple example, think about taking all the subject
-dependents of finite verbs in the gospel of John and 
+dependents of verbs in the gospel of John and 
 looking at which lemmas are most frequent as the subject:
 
 ```{r}
