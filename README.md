@@ -1,11 +1,11 @@
 
-DepsearcheR --  querying syntactically annotated data with R
+DepsearcheR -  querying syntactically annotated data with R
 ============================================================
 
 This simple library aims to provide some basic functionality for
 analyzing dependency annotated data with R.
 
-Checkout the documentation at [https://tunicorpora.github.io/depsearcheR/](https://tunicorpora.github.io/depsearcheR/).
+Check out the documentation at [https://tunicorpora.github.io/depsearcheR/](https://tunicorpora.github.io/depsearcheR/).
 
 Installation
 ============
