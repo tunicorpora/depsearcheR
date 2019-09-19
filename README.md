@@ -16,5 +16,5 @@ have  the `install_github` function needed to do the job:
 
 ```r
 library(remotes)
-install_github('utacorpora/depsearcheR')
+install_github('tunicorpora/depsearcheR')
 ```
